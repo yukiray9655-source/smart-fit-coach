@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 핏 코치 - Premium AI Health Guide</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM CDN (Production 버전) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel CDN (React JSX를 웹브라우저에서 직접 컴파일하기 위함) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
+    <div id="root"></div>
+
+    <!-- Babel을 이용한 인라인 React 실행 스크립트 -->
+    <script type="text/babel">
+        // React 훅 가져오기
+        const { useState, useEffect } = React;
+
+        // 아이콘 컴포넌트 사전 정의
+        const Icons = {
+          Sparkles: () => (
+            <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          ),
+          User: ({ className = "w-5 h-5" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          ),
+          Utensils: ({ className = "w-5 h-5" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          ),
+          Flame: ({ className = "w-5 h-5" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          ),
+          Moon: ({ className = "w-5 h-5" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+          ),
+          Search: () => (
+            <svg className="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          ),
+          Plus: () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" />
+            </svg>
+          ),
+          Trash: () => (
+            <svg className="w-4 h-4 text-rose-500 hover:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          ),
+          ChevronRight: () => (
+            <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          ),
+          Info: () => (
+            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )
+        };
+
+        const OFFLINE_FOODS = [
+          { name: '닭가슴살구이 (100g)', kcal: 165, carbs: 0, protein: 31, fat: 3.6, sodium: 74 },
+          { name: '현미밥 (한공기, 200g)', kcal: 300, carbs: 65, protein: 6, fat: 1, sodium: 5 },
+          { name: '삶은 달걀 (2개)', kcal: 155, carbs: 1.1, protein: 13, fat: 11, sodium: 124 },
+          { name: '사과 (중간크기 1개)', kcal: 95, carbs: 25, protein: 0.5, fat: 0.3, sodium: 2 },
+          { name: '아보카도 샐러드', kcal: 220, carbs: 12, protein: 4, fat: 19, sodium: 210 },
+          { name: '바나나 (1개)', kcal: 105, carbs: 27, protein: 1.3, fat: 0.3, sodium: 1 },
+          { name: '그릭 요거트 (100g)', kcal: 95, carbs: 4, protein: 10, fat: 4.5, sodium: 45 },
+          { name: '소고기 안심 (150g)', kcal: 290, carbs: 0, protein: 39, fat: 14, sodium: 80 },
+          { name: '두부 부침 (150g)', kcal: 140, carbs: 3, protein: 12, fat: 9, sodium: 150 },
+          { name: '연어 스테이크 (150g)', kcal: 310, carbs: 0, protein: 34, fat: 18, sodium: 90 },
+          { name: '아메리카노 (1잔)', kcal: 5, carbs: 0, protein: 0.3, fat: 0, sodium: 2 }
+        ];
+
+        const EXERCISES = [
+          { id: 'squat', name: '스쿼트 (Squat)', category: '하체/무산소', icon: '🏋️‍♂️', youtubeId: 'F3QY5m_Bq9c', desc: '하체 근력과 코어를 동시에 강화하는 최고의 맨몸 전신 운동입니다.', tips: '무릎이 발끝 앞으로 과도하게 나가지 않게 엉덩이를 뒤로 뺍니다.' },
+          { id: 'pushup', name: '푸쉬업 (Push-Up)', category: '상체/무산소', icon: '🤸', youtubeId: 'Fv9b6G9S38I', desc: '가슴, 삼두, 어깨와 전신 코어를 타겟팅하는 맨몸 근력 운동의 기초입니다.', tips: '몸 전체가 일직선이 되도록 코어에 강한 힘을 유지하세요.' },
+          { id: 'running', name: '인터벌 러닝 (Running)', category: '전신/유산소', icon: '🏃', youtubeId: '5ZfB3gG_Irc', desc: '심폐 지구력을 극대화하고 효과적으로 지방을 연소하는 심장 강화 운동입니다.', tips: '빠르게 달리기와 가벼운 조깅을 반복해 심박수를 극대화합니다.' },
+          { id: 'plank', name: '플랭크 (Plank)', category: '코어/안정성', icon: '🧘', youtubeId: 'vS8_Z6Z_0gU', desc: '전신, 특히 복부 심부 근육을 안전하고 탄탄하게 강화하는 핵심 코어 루틴입니다.', tips: '엉덩이가 들리거나 허리가 아래로 꺾이지 않도록 주의하세요.' },
+          { id: 'burpee', name: '버피 테스트 (Burpee)', category: '전신/고강도', icon: '⚡', youtubeId: 'S-7G8HOfD9E', desc: '짧은 시간 안에 체지방을 폭발적으로 불태우는 고강도 전신 유산소/무산소 복합 운동입니다.', tips: '착지할 때 발바닥 전체로 사뿐히 충격을 흡수해 무릎을 보호합니다.' }
+        ];
+
+        function App() {
+          const [activeTab, setActiveTab] = useState('stats');
+          const [gender, setGender] = useState('M');
+          const [age, setAge] = useState(27);
+          const [height, setHeight] = useState(175);
+          const [weight, setWeight] = useState(72);
+          const [muscle, setMuscle] = useState(32);
+          const [fat, setFat] = useState(18);
+          const [diagnosis, setDiagnosis] = useState(null);
+
+          const [mealType, setMealType] = useState('breakfast');
+          const [mealLog, setMealLog] = useState({ breakfast: [], lunch: [], dinner: [] });
+          const [searchOpen, setSearchOpen] = useState(false);
+          const [searchQuery, setSearchQuery] = useState('');
+          const [searchResults, setSearchResults] = useState(OFFLINE_FOODS);
+          const [selectedFoodForInfo, setSelectedFoodForInfo] = useState(null);
+          const [lastClickedFood, setLastClickedFood] = useState({ id: null, time: 0 });
+          const [aiMealFeedback, setAiMealFeedback] = useState(null);
+
+          const [selectedWorkout, setSelectedWorkout] = useState(null);
+
+          const [customSleepTime, setCustomSleepTime] = useState('23:00');
+          const [customWakeTime, setCustomWakeTime] = useState('07:00');
+          const [sleepReport, setSleepReport] = useState(null);
+
+          const [loading, setLoading] = useState(false);
+          const [toastMessage, setToastMessage] = useState(null);
+
+          useEffect(() => {
+            if (toastMessage) {
+              const timer = setTimeout(() => setToastMessage(null), 3000);
+              return () => clearTimeout(timer);
+            }
+          }, [toastMessage]);
+
+          const showToast = (msg) => {
+            setToastMessage(msg);
+          };
+
+          const queryGemini = async (prompt, systemInstruction = "") => {
+            try {
+              const apiKey = ""; 
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}`;
+              const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { responseMimeType: "application/json" }
+              };
+              if (systemInstruction) {
+                payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+              }
+              const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              if (!response.ok) throw new Error('API Fail');
+              const data = await response.json();
+              return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+            } catch (err) {
+              return null;
+            }
+          };
+
+          const handleDiagnosis = async () => {
+            setLoading(true);
+            const bmi = Number((weight / ((height / 100) ** 2)).toFixed(1));
+            let level = "정상체중";
+            let colorClass = "from-emerald-500 to-teal-600";
+            let bgLight = "bg-emerald-500/10";
+
+            if (bmi < 18.5) {
+              level = "저체중";
+              colorClass = "from-sky-400 to-blue-500";
+              bgLight = "bg-sky-500/10";
+            } else if (bmi >= 18.5 && bmi < 23) {
+              level = "정상체중";
+              colorClass = "from-emerald-400 to-teal-500";
+              bgLight = "bg-emerald-500/10";
+            } else if (bmi >= 23 && bmi < 25) {
+              level = "과체중";
+              colorClass = "from-amber-400 to-orange-500";
+              bgLight = "bg-amber-500/10";
+            } else if (bmi >= 25 && bmi < 30) {
+              level = "비만";
+              colorClass = "from-orange-500 to-rose-500";
+              bgLight = "bg-orange-500/10";
+            } else if (bmi >= 30 && bmi < 35) {
+              level = "비만 2단계";
+              colorClass = "from-red-500 to-rose-600";
+              bgLight = "bg-red-500/10";
+            } else {
+              level = "고도비만";
+              colorClass = "from-purple-600 to-red-600";
+              bgLight = "bg-purple-500/10";
+            }
+
+            const baseSuggestions = {
+              "저체중": {
+                diet: { breakfast: "오트밀, 바나나 1개, 우유 1잔", lunch: "두부 스테이크, 잡곡밥 1공기, 닭가슴살 샐러드", dinner: "연어 소금구이, 잡곡밥 1공기, 구운 야채 세트" },
+                workout: "점진적 과부하 무산소 웨이트 트레이닝에 절대적으로 집중하여 체중 증가 및 골격근 성장을 촉진합니다.",
+                duration: "30-50분", intensity: "중등도 (최대 심박수 60-70%)", aerobicRatio: "무산소 80%, 유산소 20%"
+              },
+              "정상체중": {
+                diet: { breakfast: "사과 1개, 플레인 그릭요거트, 모듬 견과류 한 줌", lunch: "소고기 안심 구이, 현미밥 1공기, 계란말이", dinner: "흰살 생선 조림, 보리밥 1공기, 쌈 채소" },
+                workout: "골격 유지를 유기적으로 돕기 위해 전신 심폐 컨디셔닝과 웨이트 트레이닝을 고르게 혼합해 병행합니다.",
+                duration: "50-70분", intensity: "중고강도 (최대 심박수 70-80%)", aerobicRatio: "무산소 50%, 유산소 50%"
+              },
+              "과체중": {
+                diet: { breakfast: "바나나 1개, 블랙 커피, 구운 계란 2개", lunch: "연어 야채 샐러드, 현미밥 반 공기", dinner: "닭가슴살 토마토 샐러드, 구운 고구마 1개" },
+                workout: "체지방 연소를 활성화하는 동시에 근 손실을 보전하기 위해 고강도 인터벌 트레이닝(HIIT)을 추천합니다.",
+                duration: "45-60분", intensity: "고강도 (최대 심박수 75-85%)", aerobicRatio: "무산소 40%, 유산소 60%"
+              },
+              "비만": {
+                diet: { breakfast: "저지방 요거트, 블루베리 반 컵, 삶은 달걀 1개", lunch: "버섯 두부 구이, 현미밥 1/3공기, 각종 나물 반찬", dinner: "흰살 대구 구이, 올리브유 파프리카 샐러드" },
+                workout: "척추와 무릎 관절의 피로를 최소화하기 위해 실내 고정식 사이클이나 경사도 걷기 위주로 배정합니다.",
+                duration: "40-60분", intensity: "중강도 유지 (최대 심박수 65-75%)", aerobicRatio: "무산소 30%, 유산소 70%"
+              },
+              "비만 2단계": {
+                diet: { breakfast: "무가당 두유 1잔, 구운 달걀 흰자 2개", lunch: "곤약 가미 현미밥 반 공기, 닭가슴살 채소 볶음", dinner: "훈제 연어 샐러드 (드레싱 최소화), 구운 브로콜리" },
+                workout: "무릎 및 발목 하중 완화와 안전한 기초 심폐 지구력 확보를 위해 수중 아쿠아 워킹이나 평지 속보를 행합니다.",
+                duration: "30-50분", intensity: "저중강도 (최대 심박수 60-65%)", aerobicRatio: "무산소 20%, 유산소 80%"
+              },
+              "고도비만": {
+                diet: { breakfast: "양배추 당근 해독주스 1잔, 구운 달걀 1개", lunch: "신선한 가든 양상추 샐러드, 연두부 한 모, 저염 간장", dinner: "단백질 파우더 쉐이크 1잔, 미니 단호박 1/4통" },
+                workout: "하체 및 관절 과부하 방지를 위해 고정식 의자에 앉아서 진행하는 상체 전신 순환 운동과 가벼운 평지 보행을 권장합니다.",
+                duration: "20-40분", intensity: "저강도 (최대 심박수 50-60%)", aerobicRatio: "무산소 10%, 유산소 90%"
+              }
+            };
+
+            const targetSpec = baseSuggestions[level];
+            const prompt = `
+              사용자 기본 데이터: 성별=\${gender}, 나이=\${age}세, 키=\${height}cm, 몸무게=\${weight}kg, 골격근량=\${muscle}kg, 체지방률=\${fat}%.
+              체질량 진단 분류 결과: \${level} (BMI 수치: \${bmi}).
+              사용자를 위한 지능형 개인 맞춤 스포츠 의학 처방 및 웰니스 컨설팅 데이터를 생성해 주세요.
+              반드시 모든 텍스트 값은 완벽하고 자연스러운 한국어로 작성되어야 합니다.
+              
+              출력 포맷 JSON:
+              {
+                "aiOverview": "상태 설명 및 격려 한국어 가이드 (2-3문장)",
+                "customDiet": {
+                  "breakfast": "추천 아침 식단 (한국어)",
+                  "lunch": "추천 점심 식단 (한국어)",
+                  "dinner": "추천 저녁 식단 (한국어)"
+                },
+                "customWorkout": {
+                  "focus": "정밀 운동 처방 및 루틴 설명 (한국어)",
+                  "duration": "운동 시간 (예: '45분 - 60분')",
+                  "intensity": "운동 강도 (예: '중강도 유지')",
+                  "ratio": "유·무산소 비율 (예: '무산소 40%, 유산소 60%')"
+                }
+              }
+            `;
+
+            const aiResult = await queryGemini(prompt, "당신은 한국 스포츠 의학 칼리지의 수석 교수이자 맞춤 운동 영양 설계의 권위자입니다.");
+            
+            if (aiResult) {
+              setDiagnosis({
+                bmi, level, colorClass, bgLight,
+                overview: aiResult.aiOverview,
+                diet: aiResult.customDiet,
+                workout: {
+                  focus: aiResult.customWorkout.focus,
+                  duration: aiResult.customWorkout.duration,
+                  intensity: aiResult.customWorkout.intensity,
+                  aerobicRatio: aiResult.customWorkout.ratio
+                }
+              });
+            } else {
+              setDiagnosis({
+                bmi, level, colorClass, bgLight,
+                overview: `현재 계산된 BMI 지수 \${bmi}는 대사 기준 상 '\${level}' 군에 포함됩니다. 골격근량(\${muscle}kg) 및 체지방률(\${fat}%)의 입체적 비율을 반영하여 최적화된 코칭 플랜을 활성화했습니다.`,
+                diet: targetSpec.diet,
+                workout: {
+                  focus: targetSpec.workout,
+                  duration: targetSpec.duration,
+                  intensity: targetSpec.intensity,
+                  aerobicRatio: targetSpec.aerobicRatio
+                }
+              });
+            }
+            setLoading(false);
+            showToast("신체 상태 정밀 진단이 성공적으로 완료되었습니다!");
+          };
+
+          const handleFoodSearch = async (val) => {
+            setSearchQuery(val);
+            if (!val.trim()) {
+              setSearchResults(OFFLINE_FOODS);
+              return;
+            }
+            const localFiltered = OFFLINE_FOODS.filter(f => f.name.toLowerCase().includes(val.toLowerCase()));
+            setSearchResults(localFiltered.length > 0 ? localFiltered : OFFLINE_FOODS);
+
+            if (val.length > 1) {
+              const prompt = `
+                음식 검색어: "\${val}".
+                연관되거나 일치하는 한국 식품 영양 정보를 최대 4개 도출해 주세요.
+                출력 포맷 JSON 배열:
+                [
+                  {"name": "식품명 한글 (예: 훈제 오리 구이 150g)", "kcal": 칼로리, "carbs": 탄수화물, "protein": 단백질, "fat": 지방, "sodium": 나트륨},
+                  ...
+                ]
+              `;
+              const aiFoods = await queryGemini(prompt, "당신은 한국 식품의약품안전처 영양 데이터베이스 기반의 정교한 매핑 엔진입니다.");
+              if (aiFoods && Array.isArray(aiFoods)) {
+                setSearchResults([...aiFoods, ...localFiltered.slice(0, 2)]);
+              }
+            }
+          };
+
+          const handleFoodClick = (food) => {
+            const now = Date.now();
+            if (lastClickedFood.id === food.name && (now - lastClickedFood.time) < 300) {
+              addFoodToMeal(food);
+              setLastClickedFood({ id: null, time: 0 });
+            } else {
+              setSelectedFoodForInfo(food);
+              setLastClickedFood({ id: food.name, time: now });
+            }
+          };
+
+          const addFoodToMeal = (food) => {
+            const currentList = mealLog[mealType];
+            if (currentList.length >= 6) {
+              showToast("식단에는 최대 6개의 식품만 담을 수 있습니다.");
+              return;
+            }
+            const uniqueItem = { ...food, logId: `\${food.name}-\${Date.now()}` };
+            setMealLog(prev => ({
+              ...prev,
+              [mealType]: [...prev[mealType], uniqueItem]
+            }));
+            showToast(`'\${food.name}' 음식을 \${mealType === 'breakfast' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'} 식단에 추가했습니다.`);
+          };
+
+          const removeFoodFromMeal = (type, logId) => {
+            setMealLog(prev => ({
+              ...prev,
+              [type]: prev[type].filter(item => item.logId !== logId)
+            }));
+            showToast("해당 음식을 식단에서 제거했습니다.");
+          };
+
+          const handleMealReadjustment = async () => {
+            if (!diagnosis) {
+              showToast("식단을 조절하기 전에 먼저 '신체 정보' 탭에서 진단 처방을 완료해 주세요.");
+              return;
+            }
+            setLoading(true);
+            const combinedLog = [
+              ...mealLog.breakfast.map(f => `아침식단: \${f.name} (\${f.kcal}kcal)`),
+              ...mealLog.lunch.map(f => `점심식단: \${f.name} (\${f.kcal}kcal)`),
+              ...mealLog.dinner.map(f => `저녁식단: \${f.name} (\${f.kcal}kcal)`)
+            ];
+            if (combinedLog.length === 0) {
+              setLoading(false);
+              showToast("식단에 식품을 최소 1개 이상 추가한 후 눌러주세요.");
+              return;
+            }
+
+            const prompt = `
+              회원 신체 조건: \${diagnosis.level} (BMI 수치: \${diagnosis.bmi}).
+              현재 식사 내역: [\${combinedLog.join(', ')}].
+              영양 상태를 정밀 분석하고, 교정 조언과 대체 식품을 완벽한 한글로 작성해 주세요.
+              
+              출력 포맷 JSON:
+              {
+                "evaluation": "종합 섭취 상태 피드백 한글 문장",
+                "totalTargetKcal": 1500,
+                "advice": "비만도에 최적화된 식이 행동 조언 한글 문장",
+                "replacements": [
+                  {"original": "기존에 선택한 대체 필요 음식명", "replacement": "권장 한글 대체 식품 명칭과 이유"}
+                ]
+              }
+            `;
+
+            const aiFeedback = await queryGemini(prompt, "당신은 한국 대학 병원 임상 식단 처방 센터의 선임 임상 영양사입니다.");
+            if (aiFeedback) {
+              setAiMealFeedback(aiFeedback);
+            } else {
+              setAiMealFeedback({
+                evaluation: `현재 입력된 신체 상태(\${diagnosis.level})를 기준으로 볼 때 하루 칼로리 분포 중 지방 밀도가 다소 높은 편입니다.`,
+                totalTargetKcal: diagnosis.level.includes("비만") ? 1450 : 2100,
+                advice: `정제 설탕 및 가공육을 최소화하시고 유기농 쌈 채소 및 식물성 두부 단백질 섭취를 늘려보세요.`,
+                replacements: [
+                  { original: "선택하신 모듬 식단 내역", replacement: "가공식품보다는 자연 원물(예: 찐 고구마 120g, 그릭 요거트 80g) 위주로 구성해 보시는 것을 권장합니다." }
+                ]
+              });
+            }
+            setLoading(false);
+            showToast("인공지능 코치가 식단 데이터를 분석하여 리모델링해 드렸습니다.");
+          };
+
+          const handleSleepDiagnosis = () => {
+            if (!diagnosis) {
+              showToast("정교한 수면 주기 분석을 위해 첫 번째 탭에서 신체 분석 결과를 먼저 도출해 주세요.");
+              return;
+            }
+            const sleepHourMin = diagnosis.level.includes("비만") || diagnosis.level === "고도비만" ? 7.5 : 8;
+            const bodyLoadFactor = diagnosis.level.includes("비만") ? "체내 체지방률 수준으로 인하여 수면 중 기도 압박이 발생해 깊은 수면 비중이 다소 저하될 수 있는 상태입니다." : "원활한 골격근 동화 작용과 대사 피로 회복을 위해 가장 안정적인 수면 주기입니다.";
+
+            setSleepReport({
+              requiredHours: sleepHourMin,
+              explanation: `회원님(\${diagnosis.level}, 현재 \${age}세)의 생체 대사 에너지 회복 상수를 기초로 볼 때 하루에 최소 \${sleepHourMin}시간의 총 수면량이 필요합니다.`,
+              circadianTip: `\${bodyLoadFactor} 밤 수면 상태 중 소화 기관이 완전한 휴식을 취할 수 있도록 취침 시작 3시간 전에는 완전한 단식 상태를 철저히 고수해 주십시오.`
+            });
+            showToast("생체 적응형 수면 플래닝 계산이 종료되었습니다.");
+          };
+
+          const getLogTotals = () => {
+            let kcal = 0, carbs = 0, protein = 0, fat = 0;
+            Object.values(mealLog).flat().forEach(f => {
+              kcal += f.kcal || 0;
+              carbs += f.carbs || 0;
+              protein += f.protein || 0;
+              fat += f.fat || 0;
+            });
+            return { kcal, carbs, protein, fat };
+          };
+
+          const totals = getLogTotals();
+
+          return (
+            <div className="min-h-screen bg-zinc-950 text-zinc-100 flex justify-center font-sans antialiased">
+              <div className="w-full max-w-md bg-zinc-900 flex flex-col justify-between shadow-2xl relative border-x border-zinc-800 min-h-screen pb-20">
+                <header className="sticky top-0 z-40 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 px-5 py-4 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-emerald-400 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                      <span className="font-black text-zinc-950 text-base">F</span>
+                    </div>
+                    <div>
+                      <h1 className="text-sm font-bold tracking-tight text-white leading-none">스마트 핏 코치</h1>
+                      <p className="text-[10px] text-emerald-400 mt-0.5">Premium AI Health Guide</p>
+                    </div>
+                  </div>
+                  <div className="px-2.5 py-1 rounded-full bg-zinc-800 border border-zinc-700 text-[10px] font-medium text-emerald-400 flex items-center space-x-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>AI 실시간 최적화</span>
+                  </div>
+                </header>
+
+                {loading && (
+                  <div className="absolute inset-0 z-50 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center space-y-4">
+                    <div className="w-12 h-12 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-emerald-400 animate-pulse">AI 맞춤 분석 엔진 가동 중...</p>
+                  </div>
+                )}
+
+                {toastMessage && (
+                  <div className="absolute top-16 left-4 right-4 z-50 bg-zinc-800 text-zinc-100 border border-emerald-500/30 rounded-xl px-4 py-3 shadow-2xl flex items-center space-x-2 text-xs transition-all animate-bounce">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></div>
+                    <span className="font-medium text-zinc-200">{toastMessage}</span>
+                  </div>
+                )}
+
+                <main className="flex-1 overflow-y-auto px-5 py-6 space-y-6">
+                  {activeTab === 'stats' && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-emerald-400 tracking-wider uppercase">Biological Profiling</span>
+                        <h2 className="text-2xl font-black text-white">신체 매개변수 진단</h2>
+                        <p className="text-xs text-zinc-400">골격근량과 체지방률 비율까지 세밀하게 진단하여 완벽한 신체 지표를 도출합니다.</p>
+                      </div>
+
+                      <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">성별</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button onClick={() => setGender('M')} className={`py-2 text-xs font-bold rounded-xl transition \${gender === 'M' ? 'bg-emerald-500 text-zinc-950 shadow-md' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>남성</button>
+                              <button onClick={() => setGender('F')} className={`py-2 text-xs font-bold rounded-xl transition \${gender === 'F' ? 'bg-emerald-500 text-zinc-950 shadow-md' : 'bg-zinc-800 text-zinc-400 border border-zinc-700'}`}>여성</button>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">나이 (세)</label>
+                            <input type="number" value={age} onChange={(e) => setAge(Math.max(1, Number(e.target.value)))} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">키 (cm)</label>
+                            <input type="number" value={height} onChange={(e) => setHeight(Math.max(1, Number(e.target.value)))} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">몸무게 (kg)</label>
+                            <input type="number" value={weight} onChange={(e) => setWeight(Math.max(1, Number(e.target.value)))} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">골격근량 (kg)</label>
+                            <input type="number" value={muscle} onChange={(e) => setMuscle(Math.max(1, Number(e.target.value)))} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">체지방률 (%)</label>
+                            <input type="number" value={fat} onChange={(e) => setFat(Math.max(1, Number(e.target.value)))} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          </div>
+                        </div>
+
+                        <button onClick={handleDiagnosis} className="w-full bg-gradient-to-r from-emerald-400 to-teal-500 text-zinc-950 font-black py-3.5 px-4 rounded-xl text-xs hover:opacity-95 transition active:scale-[0.98] mt-2 shadow-lg shadow-emerald-500/20 flex items-center justify-center space-x-1.5">
+                          <Icons.Sparkles />
+                          <span>맞춤 분석 및 처방 데이터 생성</span>
+                        </button>
+                      </div>
+
+                      {diagnosis && (
+                        <div className="space-y-5">
+                          <div className={`rounded-2xl p-5 bg-gradient-to-tr \${diagnosis.colorClass} text-zinc-950 shadow-xl`}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] font-black tracking-widest uppercase opacity-80">METABOLIC STATUS</span>
+                                <h3 className="text-2xl font-black mt-1">현재 상태: {diagnosis.level}</h3>
+                              </div>
+                              <div className="bg-white/25 px-3 py-1.5 rounded-lg text-xs font-black">
+                                BMI 지수: {diagnosis.bmi}
+                              </div>
+                            </div>
+                            <div className="mt-5 space-y-1.5">
+                              <div className="h-2 bg-black/15 rounded-full overflow-hidden flex">
+                                <div className="h-full bg-black/55 transition-all duration-500" style={{ width: `\${Math.min(100, (diagnosis.bmi / 40) * 100)}%` }}></div>
+                              </div>
+                              <div className="flex justify-between text-[9px] font-bold opacity-80">
+                                <span>저체중 (18.5 미만)</span>
+                                <span>정상 (23 미만)</span>
+                                <span>과체중 (25 미만)</span>
+                                <span>비만 (35 이상)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-3">
+                            <div className="flex items-start space-x-2.5">
+                              <div className="p-1 rounded bg-emerald-500/10">
+                                <Icons.Info />
+                              </div>
+                              <div className="space-y-1">
+                                <h4 className="text-xs font-bold text-white">AI 코칭 종합 코멘트</h4>
+                                <p className="text-xs text-zinc-300 leading-relaxed font-medium">{diagnosis.overview}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
+                            <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              <span>추천 최적 영양 배치 식단</span>
+                            </h4>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                <p className="text-[10px] text-zinc-400 font-bold">아침 식사</p>
+                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.breakfast}>{diagnosis.diet.breakfast}</p>
+                              </div>
+                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                <p className="text-[10px] text-zinc-400 font-bold">점심 식사</p>
+                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.lunch}>{diagnosis.diet.lunch}</p>
+                              </div>
+                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                <p className="text-[10px] text-zinc-400 font-bold">저녁 식사</p>
+                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.dinner}>{diagnosis.diet.dinner}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
+                            <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+                              <span>체형 맞춤 지능형 운동 처방전</span>
+                            </h4>
+                            <p className="text-xs text-zinc-300 leading-relaxed font-medium">{diagnosis.workout.focus}</p>
+                            <div className="grid grid-cols-3 gap-2.5 pt-1">
+                              <div className="bg-zinc-900 p-2.5 rounded-xl text-center border border-zinc-800">
+                                <p className="text-[9px] text-zinc-400 font-bold">추천 운동 시간</p>
+                                <p className="text-xs font-black text-white mt-0.5">{diagnosis.workout.duration}</p>
+                              </div>
+                              <div className="bg-zinc-900 p-2.5 rounded-xl text-center border border-zinc-800">
+                                <p className="text-[9px] text-zinc-400 font-bold">목표 수행 강도</p>
+                                <p className="text-xs font-black text-white mt-0.5">{diagnosis.workout.intensity}</p>
+                              </div>
+                              <div className="bg-zinc-900 p-2.5 rounded-xl text-center border border-zinc-800">
+                                <p className="text-[9px] text-zinc-400 font-bold">유·무산소 강도 비율</p>
+                                <p className="text-xs font-black text-white mt-0.5">{diagnosis.workout.aerobicRatio}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'diet' && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-emerald-400 tracking-wider uppercase">Advanced Meal Logger</span>
+                        <h2 className="text-2xl font-black text-white">식단 다이어리 & 칼로리</h2>
+                        <p className="text-xs text-zinc-400">아침, 점심, 저녁 식단 카테고리에 음식을 로깅하고 비만 진단에 부합하도록 영양 균형 재배치 제안을 받아보세요.</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 bg-zinc-800/40 p-1.5 rounded-xl border border-zinc-800">
+                        {['breakfast', 'lunch', 'dinner'].map((type) => (
+                          <button key={type} onClick={() => setMealType(type)} className={`py-2 text-xs font-extrabold rounded-lg transition \${mealType === type ? 'bg-zinc-800 text-white shadow-sm border border-zinc-700' : 'text-zinc-500 hover:text-zinc-400'}`}>
+                            {type === 'breakfast' ? '아침 식단' : type === 'lunch' ? '점심 식단' : '저녁 식단'}
+                          </button>
+                        ))}
+                      </div>
+
+                      <div className="bg-zinc-800/30 border border-zinc-800 rounded-2xl p-5 space-y-4">
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-xs font-black text-white tracking-wide">
+                            {mealType === 'breakfast' ? '아침' : mealType === 'lunch' ? '점심' : '저녁'} 식생활 데이터 ({mealLog[mealType].length}/6)
+                          </h3>
+                          <button onClick={() => setSearchOpen(true)} className="bg-emerald-500 text-zinc-950 font-black px-3 py-1.5 rounded-lg text-[10px] hover:opacity-90 active:scale-[0.97] transition flex items-center space-x-1">
+                            <Icons.Plus />
+                            <span>식품 추가</span>
+                          </button>
+                        </div>
+
+                        {mealLog[mealType].length === 0 ? (
+                          <div className="border border-dashed border-zinc-800 rounded-xl p-8 text-center text-zinc-500">
+                            <p className="text-xs font-medium">등록된 식품 내역이 전혀 없습니다.</p>
+                            <p className="text-[10px] mt-1 text-zinc-600 font-semibold">위의 '식품 추가' 버튼을 눌러 칼로리를 로깅하십시오.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {mealLog[mealType].map((item) => (
+                              <div key={item.logId} className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-xl p-3.5 hover:border-zinc-700 transition">
+                                <div className="flex items-center space-x-3">
+                                  <span className="text-xs font-black text-emerald-400">{item.kcal} kcal</span>
+                                  <div>
+                                    <p className="text-xs font-bold text-white">{item.name}</p>
+                                    <p className="text-[9px] text-zinc-500 mt-0.5">탄수화물 {item.carbs}g · 단백질 {item.protein}g · 지방 {item.fat}g</p>
+                                  </div>
+                                </div>
+                                <button onClick={() => removeFoodFromMeal(mealType, item.logId)} className="p-1 hover:bg-zinc-800 rounded-lg transition">
+                                  <Icons.Trash />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {Object.values(mealLog).flat().length > 0 && (
+                        <div className="bg-zinc-800/40 border border-zinc-800 rounded-2xl p-5 space-y-4">
+                          <h3 className="text-xs font-black text-white uppercase tracking-wider">오늘 하루 총 섭취 누적 데이터</h3>
+                          <div className="grid grid-cols-4 gap-2">
+                            <div className="bg-zinc-900/60 rounded-xl p-2.5 text-center border border-zinc-800/60">
+                              <p className="text-[8px] text-zinc-500 font-bold">총 칼로리</p>
+                              <p className="text-xs font-black text-white mt-1">{totals.kcal} kcal</p>
+                            </div>
+                            <div className="bg-zinc-900/60 rounded-xl p-2.5 text-center border border-zinc-800/60">
+                              <p className="text-[8px] text-zinc-500 font-bold">탄수화물</p>
+                              <p className="text-xs font-black text-amber-400 mt-1">{totals.carbs.toFixed(1)}g</p>
+                            </div>
+                            <div className="bg-zinc-900/60 rounded-xl p-2.5 text-center border border-zinc-800/60">
+                              <p className="text-[8px] text-zinc-500 font-bold">단백질</p>
+                              <p className="text-xs font-black text-emerald-400 mt-1">{totals.protein.toFixed(1)}g</p>
+                            </div>
+                            <div className="bg-zinc-900/60 rounded-xl p-2.5 text-center border border-zinc-800/60">
+                              <p className="text-[8px] text-zinc-500 font-bold">지방</p>
+                              <p className="text-xs font-black text-sky-400 mt-1">{totals.fat.toFixed(1)}g</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex space-x-3">
+                        <button onClick={handleMealReadjustment} className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-zinc-950 font-black py-3.5 px-4 rounded-xl text-xs shadow-lg shadow-emerald-500/15 flex items-center justify-center space-x-2 hover:opacity-95 active:scale-[0.98] transition">
+                          <Icons.Sparkles />
+                          <span>AI 최적 식단 재조정 교정</span>
+                        </button>
+                      </div>
+
+                      {aiMealFeedback && (
+                        <div className="bg-zinc-800/50 border border-zinc-800 rounded-2xl p-5 space-y-4 animate-fadeIn">
+                          <div className="flex items-center space-x-2">
+                            <span className="p-1 rounded bg-emerald-500/10 text-emerald-400">⚡</span>
+                            <h3 className="text-xs font-black text-white tracking-wide uppercase">AI 지능형 식단 재배치 보고서</h3>
+                          </div>
+                          
+                          <div className="space-y-3.5 text-xs text-zinc-300 leading-relaxed">
+                            <div className="p-3 bg-zinc-900/80 rounded-xl border border-zinc-800">
+                              <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">종합 섭취 상태 피드백</p>
+                              <p className="mt-1 text-zinc-100 font-semibold">{aiMealFeedback.evaluation}</p>
+                            </div>
+
+                            <div className="p-3 bg-zinc-900/80 rounded-xl border border-zinc-800">
+                              <p className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider">처방 식이 행동 지침</p>
+                              <p className="mt-1 text-zinc-100 font-semibold">{aiMealFeedback.advice}</p>
+                            </div>
+
+                            <div className="space-y-2">
+                              <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">추천 대체 식단 솔루션</p>
+                              {aiMealFeedback.replacements?.map((rep, idx) => (
+                                <div key={idx} className="bg-zinc-900 p-3 rounded-xl border border-zinc-800 space-y-1">
+                                  <p className="text-[10px] text-zinc-500 line-through">기존 선택: {rep.original}</p>
+                                  <p className="text-[11px] text-emerald-400 font-bold">권장 대체제: {rep.replacement}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTab === 'workout' && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-violet-400 tracking-wider uppercase">Dynamic Workout Prescribe</span>
+                        <h2 className="text-2xl font-black text-white">맞춤 운동 처방 & 가이드</h2>
+                        <p className="text-xs text-zinc-400">BMI 등급에 최적화된 운동 강도 및 구성을 추천해 드립니다. 실시간 비디오 강좌와 핵심 테크닉 팁을 바로 확인해 보세요.</p>
+                      </div>
+
+                      {diagnosis ? (
+                        <div className="bg-zinc-800/50 rounded-2xl p-4 border border-zinc-800 flex items-center justify-between">
+                          <div className="space-y-1">
+                            <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">나의 맞춤 강도 동기화</p>
+                            <p className="text-sm font-black text-emerald-400">{diagnosis.workout.intensity} ({diagnosis.workout.duration} 권장)</p>
+                          </div>
+                          <div className="px-3 py-1 bg-zinc-900 rounded-lg text-[10px] font-bold text-zinc-300">
+                            {diagnosis.workout.aerobicRatio}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-4 bg-zinc-800/30 border border-dashed border-zinc-800 rounded-2xl text-center text-xs text-zinc-500">
+                          첫 번째 '신체 정보' 탭에서 진단을 마치시면, 내 몸에 가장 이상적인 한글 운동 처방 분석 데이터와 동기화됩니다.
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 gap-3">
+                        {EXERCISES.map((ex) => (
+                          <div key={ex.id} onClick={() => setSelectedWorkout(selectedWorkout?.id === ex.id ? null : ex)} className={`bg-zinc-850 border rounded-2xl p-4 cursor-pointer transition-all \${selectedWorkout?.id === ex.id ? 'bg-zinc-800 border-violet-500 shadow-xl shadow-violet-500/5' : 'border-zinc-800 hover:border-zinc-700 bg-zinc-800/40'}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-3.5">
+                                <span className="text-2xl">{ex.icon}</span>
+                                <div>
+                                  <h3 className="text-xs font-black text-white leading-none">{ex.name}</h3>
+                                  <span className="inline-block mt-1 text-[9px] px-1.5 py-0.5 rounded-full bg-zinc-900 text-zinc-400 font-bold border border-zinc-800">{ex.category}</span>
+                                </div>
+                              </div>
+                              <span className={`transform transition duration-200 \${selectedWorkout?.id === ex.id ? 'rotate-90 text-violet-400' : ''}`}>
+                                <Icons.ChevronRight />
+                              </span>
+                            </div>
+
+                            {selectedWorkout?.id === ex.id && (
+                              <div className="mt-5 pt-4 border-t border-zinc-800 space-y-4">
+                                <p className="text-xs text-zinc-300 leading-relaxed font-semibold">{ex.desc}</p>
+                                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-zinc-700 group shadow-2xl">
+                                  <iframe className="absolute inset-0 w-full h-full" src={`https://www.youtube.com/embed/\${ex.youtubeId}?autoplay=0&rel=0&mute=1`} title={ex.name} frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen></iframe>
+                                </div>
+                                <div className="p-3.5 bg-zinc-900 rounded-xl border border-zinc-800 space-y-1">
+                                  <p className="text-[10px] text-violet-400 font-black tracking-wide uppercase">⚡ SPECIAL COACHING TIP</p>
+                                  <p className="text-xs text-zinc-200 leading-normal font-semibold">{ex.tips}</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'sleep' && (
+                    <div className="space-y-6">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-sky-400 tracking-wider uppercase">Circadian Sleep Analytics</span>
+                        <h2 className="text-2xl font-black text-white">지능형 생체 수면 관리</h2>
+                        <p className="text-xs text-zinc-400">인체의 대사 피로도와 서카디안 생체 시계를 병합하여 최적의 수면 주기 솔루션을 제공해 드립니다.</p>
+                      </div>
+
+                      <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">목표 취침 시작 시간</label>
+                            <input type="time" value={customSleepTime} onChange={(e) => setCustomSleepTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wide">목표 기상 달성 시간</label>
+                            <input type="time" value={customWakeTime} onChange={(e) => setCustomWakeTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500" />
+                          </div>
+                        </div>
+
+                        <button onClick={handleSleepDiagnosis} className="w-full bg-gradient-to-r from-sky-400 to-blue-500 text-zinc-950 font-black py-3.5 px-4 rounded-xl text-xs hover:opacity-95 active:scale-[0.98] transition flex items-center justify-center space-x-1.5 shadow-lg shadow-sky-500/15">
+                          <Icons.Moon className="w-5 h-5 text-zinc-950" />
+                          <span>개인화 수면 솔루션 계산</span>
+                        </button>
+                      </div>
+
+                      {sleepReport && (
+                        <div className="bg-zinc-800/40 border border-zinc-800 rounded-2xl p-5 space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-lg">🌙</span>
+                            <h3 className="text-xs font-black text-white uppercase tracking-wider">나의 생체 수면 처방서</h3>
+                          </div>
+                          <div className="space-y-3.5">
+                            <div className="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                              <p className="text-[9px] text-sky-400 font-bold uppercase tracking-wider">적정 수면 권장 범위</p>
+                              <p className="text-xs text-zinc-100 font-semibold leading-relaxed">{sleepReport.explanation}</p>
+                            </div>
+                            <div className="bg-zinc-900/60 p-3.5 rounded-xl border border-zinc-800 space-y-1">
+                              <p className="text-[9px] text-sky-400 font-bold uppercase tracking-wider">대사 안정 섭생 지식</p>
+                              <p className="text-xs text-zinc-100 font-semibold leading-relaxed">{sleepReport.circadianTip}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="bg-zinc-800/30 border border-zinc-800 rounded-2xl p-5 space-y-2">
+                        <h4 className="text-xs font-bold text-white">💡 수면 과학 가이드 : 90분 논렘 주기의 법칙</h4>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed font-semibold">
+                          사람의 수면은 일반적으로 90분 단위를 기준으로 깊은 무렘수면과 렘수면 주기를 반복하게 됩니다. 따라서 7시간 반(5사이클) 혹은 9시간(6사이클)의 수면 사이클이 완성되는 지점에 알람 기상 목표를 맞추어 주시면 피로를 최소화할 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </main>
+
+                {searchOpen && (
+                  <div className="absolute inset-0 z-50 bg-black/85 backdrop-blur-xs flex flex-col justify-end">
+                    <div className="bg-zinc-900 border-t border-zinc-850 rounded-t-3xl max-h-[90%] flex flex-col overflow-hidden pb-6">
+                      <div className="w-12 h-1 bg-zinc-700 rounded-full mx-auto my-3"></div>
+                      <div className="px-5 pb-3 flex items-center justify-between border-b border-zinc-850">
+                        <h3 className="text-sm font-black text-white">식품 영양성분 공공 데이터 검색</h3>
+                        <button onClick={() => { setSearchOpen(false); setSelectedFoodForInfo(null); }} className="text-zinc-400 hover:text-white text-xs font-bold px-2 py-1">닫기</button>
+                      </div>
+
+                      <div className="p-5">
+                        <div className="relative">
+                          <input type="text" placeholder="예: 닭가슴살, 현미밥, 소고기, 연어..." value={searchQuery} onChange={(e) => handleFoodSearch(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-11 pr-4 py-3 text-xs text-white focus:outline-none focus:border-emerald-500" />
+                          <div className="absolute left-4 top-3.5"><Icons.Search /></div>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 mt-2 font-semibold">💡 한 번 누르면 영양정보 분석이 펼쳐지고, 빠르게 더블 클릭하면 즉시 식단 일지에 등록됩니다.</p>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto px-5 space-y-2">
+                        {searchResults.map((food, idx) => (
+                          <div key={idx} onClick={() => handleFoodClick(food)} className="flex items-center justify-between bg-zinc-800/40 border border-zinc-850 rounded-xl p-3.5 hover:border-zinc-700 transition cursor-pointer select-none">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-xs font-extrabold text-emerald-400 min-w-[55px] text-left">{food.kcal} kcal</span>
+                              <span className="text-xs text-white font-bold">{food.name}</span>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); addFoodToMeal(food); }} className="bg-zinc-800 border border-zinc-700 hover:bg-emerald-500 hover:text-zinc-950 hover:border-emerald-500 p-1.5 rounded-lg transition">
+                              <Icons.Plus />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+
+                      {selectedFoodForInfo && (
+                        <div className="mx-5 my-3 p-4 bg-zinc-800/80 rounded-2xl border border-zinc-700 space-y-3.5">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-xs font-black text-emerald-400">{selectedFoodForInfo.name} 상세 영양 분석</h4>
+                            <span className="text-[10px] bg-zinc-900 text-zinc-400 px-2 py-0.5 rounded font-bold">{selectedFoodForInfo.kcal} kcal</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2 text-center">
+                            <div className="bg-zinc-900 p-2 rounded-xl text-zinc-300">
+                              <p className="text-[8px] text-zinc-500 font-bold">탄수화물</p>
+                              <p className="text-xs font-black mt-0.5">{selectedFoodForInfo.carbs}g</p>
+                            </div>
+                            <div className="bg-zinc-900 p-2 rounded-xl text-zinc-300">
+                              <p className="text-[8px] text-zinc-500 font-bold">단백질</p>
+                              <p className="text-xs font-black mt-0.5">{selectedFoodForInfo.protein}g</p>
+                            </div>
+                            <div className="bg-zinc-900 p-2 rounded-xl text-zinc-300">
+                              <p className="text-[8px] text-zinc-500 font-bold">지방</p>
+                              <p className="text-xs font-black mt-0.5">{selectedFoodForInfo.fat}g</p>
+                            </div>
+                            <div className="bg-zinc-900 p-2 rounded-xl text-zinc-300">
+                              <p className="text-[8px] text-zinc-500 font-bold">나트륨</p>
+                              <p className="text-xs font-black mt-0.5">{selectedFoodForInfo.sodium}mg</p>
+                            </div>
+                          </div>
+                          <button onClick={() => { addFoodToMeal(selectedFoodForInfo); setSelectedFoodForInfo(null); }} className="w-full bg-emerald-500 text-zinc-950 font-black py-2.5 rounded-xl text-xs">이 식품을 식단 슬롯에 최종 등록</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <nav className="absolute bottom-0 left-0 right-0 h-20 bg-zinc-900/95 backdrop-blur-md border-t border-zinc-800 flex justify-around items-center px-4">
+                  <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center space-y-1.5 transition \${activeTab === 'stats' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    <Icons.User className="w-5 h-5" />
+                    <span className="text-[9px] font-bold">신체 정보</span>
+                  </button>
+                  <button onClick={() => setActiveTab('diet')} className={`flex flex-col items-center space-y-1.5 transition \${activeTab === 'diet' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    <Icons.Utensils className="w-5 h-5" />
+                    <span className="text-[9px] font-bold">식단 칼로리</span>
+                  </button>
+                  <button onClick={() => setActiveTab('workout')} className={`flex flex-col items-center space-y-1.5 transition \${activeTab === 'workout' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    <Icons.Flame className="w-5 h-5" />
+                    <span className="text-[9px] font-bold">운동 처방</span>
+                  </button>
+                  <button onClick={() => setActiveTab('sleep')} className={`flex flex-col items-center space-y-1.5 transition \${activeTab === 'sleep' ? 'text-emerald-400' : 'text-zinc-500 hover:text-zinc-300'}`}>
+                    <Icons.Moon className="w-5 h-5" />
+                    <span className="text-[9px] font-bold">수면 타이머</span>
+                  </button>
+                </nav>
+              </div>
+            </div>
+          );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
