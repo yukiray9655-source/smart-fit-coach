@@ -11,6 +11,12 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <!-- Babel CDN (React JSX를 웹브라우저에서 직접 컴파일하기 위함) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* 부드러운 아코디언 애니메이션을 위한 트랜지션 효과 추가 */
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+        }
+    </style>
 </head>
 <body class="bg-zinc-950 text-zinc-100 font-sans antialiased">
     <div id="root"></div>
@@ -63,9 +69,14 @@
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
           ),
-          ChevronRight: () => (
-            <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          ChevronRight: ({ className = "w-5 h-5 text-zinc-500" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+            </svg>
+          ),
+          ChevronDown: ({ className = "w-5 h-5 text-zinc-500" }) => (
+            <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
             </svg>
           ),
           Info: () => (
@@ -107,6 +118,9 @@
           const [fat, setFat] = useState(18);
           const [diagnosis, setDiagnosis] = useState(null);
 
+          // "추천 최적 영양 배치 식단" 아코디언 상태 관리 (신체정보 카테고리 전용)
+          const [isDietExpanded, setIsDietExpanded] = useState(false);
+
           const [mealType, setMealType] = useState('breakfast');
           const [mealLog, setMealLog] = useState({ breakfast: [], lunch: [], dinner: [] });
           const [searchOpen, setSearchOpen] = useState(false);
@@ -139,7 +153,7 @@
           const queryGemini = async (prompt, systemInstruction = "") => {
             try {
               const apiKey = ""; 
-              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=\${apiKey}`;
+              const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
               const payload = {
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: { responseMimeType: "application/json" }
@@ -195,32 +209,32 @@
 
             const baseSuggestions = {
               "저체중": {
-                diet: { breakfast: "오트밀, 바나나 1개, 우유 1잔", lunch: "두부 스테이크, 잡곡밥 1공기, 닭가슴살 샐러드", dinner: "연어 소금구이, 잡곡밥 1공기, 구운 야채 세트" },
+                diet: { breakfast: "오트밀과 바나나 1개, 저지방 우유 1잔 (근합성 원료 공급)", lunch: "두부 곤약 스테이크, 잡곡 완두콩밥 1공기, 닭가슴살 믹스 샐러드", dinner: "연어 레몬 소금구이, 잡곡밥 1공기, 구운 야채 버섯 세트" },
                 workout: "점진적 과부하 무산소 웨이트 트레이닝에 절대적으로 집중하여 체중 증가 및 골격근 성장을 촉진합니다.",
                 duration: "30-50분", intensity: "중등도 (최대 심박수 60-70%)", aerobicRatio: "무산소 80%, 유산소 20%"
               },
               "정상체중": {
-                diet: { breakfast: "사과 1개, 플레인 그릭요거트, 모듬 견과류 한 줌", lunch: "소고기 안심 구이, 현미밥 1공기, 계란말이", dinner: "흰살 생선 조림, 보리밥 1공기, 쌈 채소" },
+                diet: { breakfast: "꿀을 얹은 사과 1개, 플레인 고농축 그릭요거트, 모듬 하루견과 한 줌", lunch: "소고기 우둔/안심 오븐 구이, 무농약 현미밥 1공기, 저염 계란말이", dinner: "흰살 생선 맑은 무조림, 유기농 보리밥 1공기, 싱싱한 야채 쌈 세트" },
                 workout: "골격 유지를 유기적으로 돕기 위해 전신 심폐 컨디셔닝과 웨이트 트레이닝을 고르게 혼합해 병행합니다.",
                 duration: "50-70분", intensity: "중고강도 (최대 심박수 70-80%)", aerobicRatio: "무산소 50%, 유산소 50%"
               },
               "과체중": {
-                diet: { breakfast: "바나나 1개, 블랙 커피, 구운 계란 2개", lunch: "연어 야채 샐러드, 현미밥 반 공기", dinner: "닭가슴살 토마토 샐러드, 구운 고구마 1개" },
+                diet: { breakfast: "잘 익은 바나나 1개, 유기농 블랙 커피, 맥반석 구운 계란 2개", lunch: "연어 아보카도 야채 가든 샐러드, 현미 오곡밥 반 공기", dinner: "수비드 닭가슴살 토마토 허브 샐러드, 따뜻하게 구운 미니 고구마 1개" },
                 workout: "체지방 연소를 활성화하는 동시에 근 손실을 보전하기 위해 고강도 인터벌 트레이닝(HIIT)을 추천합니다.",
                 duration: "45-60분", intensity: "고강도 (최대 심박수 75-85%)", aerobicRatio: "무산소 40%, 유산소 60%"
               },
               "비만": {
-                diet: { breakfast: "저지방 요거트, 블루베리 반 컵, 삶은 달걀 1개", lunch: "버섯 두부 구이, 현미밥 1/3공기, 각종 나물 반찬", dinner: "흰살 대구 구이, 올리브유 파프리카 샐러드" },
+                diet: { breakfast: "저지방 발효 요거트, 냉동 블루베리 반 컵, 촉촉한 삶은 달걀 1개", lunch: "표고버섯 두부 소금 구이, 식이섬유 현미밥 1/3공기, 저염 각종 계절 나물 반찬", dinner: "오븐 대구 구이, 버진 올리브유 파프리카 샐러드" },
                 workout: "척추와 무릎 관절의 피로를 최소화하기 위해 실내 고정식 사이클이나 경사도 걷기 위주로 배정합니다.",
                 duration: "40-60분", intensity: "중강도 유지 (최대 심박수 65-75%)", aerobicRatio: "무산소 30%, 유산소 70%"
               },
               "비만 2단계": {
-                diet: { breakfast: "무가당 두유 1잔, 구운 달걀 흰자 2개", lunch: "곤약 가미 현미밥 반 공기, 닭가슴살 채소 볶음", dinner: "훈제 연어 샐러드 (드레싱 최소화), 구운 브로콜리" },
+                diet: { breakfast: "무가당 저칼로리 두유 1잔, 구운 달걀 흰자 2개", lunch: "곤약 가미 현미오트밀밥 반 공기, 촉촉한 닭가슴살 채소 볶음", dinner: "훈제 연어 가든 샐러드 (화이트 발사믹 드레싱 최소화), 스팀으로 구운 브로콜리" },
                 workout: "무릎 및 발목 하중 완화와 안전한 기초 심폐 지구력 확보를 위해 수중 아쿠아 워킹이나 평지 속보를 행합니다.",
                 duration: "30-50분", intensity: "저중강도 (최대 심박수 60-65%)", aerobicRatio: "무산소 20%, 유산소 80%"
               },
               "고도비만": {
-                diet: { breakfast: "양배추 당근 해독주스 1잔, 구운 달걀 1개", lunch: "신선한 가든 양상추 샐러드, 연두부 한 모, 저염 간장", dinner: "단백질 파우더 쉐이크 1잔, 미니 단호박 1/4통" },
+                diet: { breakfast: "양배추 당근 착즙 해독주스 1잔, 부드럽게 구운 달걀 완숙 1개", lunch: "신선한 가든 양상추 슬라이스 샐러드, 부드러운 연두부 한 모, 저염 맛간장 소량", dinner: "초콜릿맛 단백질 파우더 쉐이크 1잔, 미니 단호박 1/4통 오븐 찜" },
                 workout: "하체 및 관절 과부하 방지를 위해 고정식 의자에 앉아서 진행하는 상체 전신 순환 운동과 가벼운 평지 보행을 권장합니다.",
                 duration: "20-40분", intensity: "저강도 (최대 심박수 50-60%)", aerobicRatio: "무산소 10%, 유산소 90%"
               }
@@ -228,7 +242,7 @@
 
             const targetSpec = baseSuggestions[level];
             const prompt = `
-              사용자 기본 데이터: 성별=\${gender}, 나이=\${age}세, 키=\${height}cm, 몸무게=\${weight}kg, 골격근량=\${muscle}kg, 체지방률=\${fat}%.
+              사용자 기본 데이터: 성별=\${gender}, 나이=\${age}세, 키=\${height}cm, 몸무게=\${weight}kg, 골격근량=\--${muscle}kg, 체지방률=\${fat}%.
               체질량 진단 분류 결과: \${level} (BMI 수치: \${bmi}).
               사용자를 위한 지능형 개인 맞춤 스포츠 의학 처방 및 웰니스 컨설팅 데이터를 생성해 주세요.
               반드시 모든 텍스트 값은 완벽하고 자연스러운 한국어로 작성되어야 합니다.
@@ -267,7 +281,7 @@
             } else {
               setDiagnosis({
                 bmi, level, colorClass, bgLight,
-                overview: `현재 계산된 BMI 지수 \${bmi}는 대사 기준 상 '\${level}' 군에 포함됩니다. 골격근량(\${muscle}kg) 및 체지방률(\${fat}%)의 입체적 비율을 반영하여 최적화된 코칭 플랜을 활성화했습니다.`,
+                overview: gender === 'M' ? '남성' : '여성' + " " + age + "세 회원님, 현재 계산된 BMI 지수 " + bmi + "는 대사 기준 상 '" + level + "' 군에 포함됩니다. 골격근량(" + muscle + "kg) 및 체지방률(" + fat + "%)의 입체적 비율을 반영하여 최적화된 코칭 플랜을 활성화했습니다.",
                 diet: targetSpec.diet,
                 workout: {
                   focus: targetSpec.workout,
@@ -277,6 +291,8 @@
                 }
               });
             }
+            // 새로운 진단 시 아코디언은 기본적으로 닫힌 상태로 재초기화
+            setIsDietExpanded(false);
             setLoading(false);
             showToast("신체 상태 정밀 진단이 성공적으로 완료되었습니다!");
           };
@@ -398,12 +414,15 @@
             const sleepHourMin = diagnosis.level.includes("비만") || diagnosis.level === "고도비만" ? 7.5 : 8;
             const bodyLoadFactor = diagnosis.level.includes("비만") ? "체내 체지방률 수준으로 인하여 수면 중 기도 압박이 발생해 깊은 수면 비중이 다소 저하될 수 있는 상태입니다." : "원활한 골격근 동화 작용과 대사 피로 회복을 위해 가장 안정적인 수면 주기입니다.";
 
+            // 호환성이 가장 높고 브라우저 Babel 오류가 없는 String Concatenation 안전 포맷 적용
+            const finalExplanation = "회원님(" + diagnosis.level + ", 현재 " + age + "세)의 생체 대사 에너지 회복 상수를 기초로 볼 때 하루에 최소 " + sleepHourMin + "시간의 총 수면량이 필요합니다.";
+
             setSleepReport({
               requiredHours: sleepHourMin,
-              explanation: `회원님(\${diagnosis.level}, 현재 \${age}세)의 생체 대사 에너지 회복 상수를 기초로 볼 때 하루에 최소 \${sleepHourMin}시간의 총 수면량이 필요합니다.`,
-              circadianTip: `\${bodyLoadFactor} 밤 수면 상태 중 소화 기관이 완전한 휴식을 취할 수 있도록 취침 시작 3시간 전에는 완전한 단식 상태를 철저히 고수해 주십시오.`
+              explanation: finalExplanation,
+              circadianTip: bodyLoadFactor + " 밤 수면 상태 중 소화 기관이 완전한 휴식을 취할 수 있도록 취침 시작 3시간 전에는 완전한 단식 상태를 철저히 고수해 주십시오."
             });
-            showToast("생체 적응형 수면 플래닝 계산이 종료되었습니다.");
+            showToast("생체 적응형 수면 플래닝 계산이 완료되었습니다.");
           };
 
           const getLogTotals = () => {
@@ -505,7 +524,7 @@
                       </div>
 
                       {diagnosis && (
-                        <div className="space-y-5">
+                        <div className="space-y-5 animate-fadeIn">
                           <div className={`rounded-2xl p-5 bg-gradient-to-tr \${diagnosis.colorClass} text-zinc-950 shadow-xl`}>
                             <div className="flex justify-between items-start">
                               <div>
@@ -541,25 +560,72 @@
                             </div>
                           </div>
 
-                          <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
-                            <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                              <span>추천 최적 영양 배치 식단</span>
-                            </h4>
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
-                                <p className="text-[10px] text-zinc-400 font-bold">아침 식사</p>
-                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.breakfast}>{diagnosis.diet.breakfast}</p>
-                              </div>
-                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
-                                <p className="text-[10px] text-zinc-400 font-bold">점심 식사</p>
-                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.lunch}>{diagnosis.diet.lunch}</p>
-                              </div>
-                              <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
-                                <p className="text-[10px] text-zinc-400 font-bold">저녁 식사</p>
-                                <p className="text-xs text-emerald-400 font-bold mt-1.5 truncate" title={diagnosis.diet.dinner}>{diagnosis.diet.dinner}</p>
+                          {/* 터치 시 아래로 다이내믹하게 전체 식단이 펼쳐지는 고품격 아코디언 카드 */}
+                          <div 
+                            onClick={() => setIsDietExpanded(!isDietExpanded)}
+                            className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4 cursor-pointer hover:border-zinc-700 transition-all select-none active:bg-zinc-850"
+                          >
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center space-x-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                                <span>추천 최적 영양 배치 식단</span>
+                              </h4>
+                              <div className="flex items-center space-x-1.5">
+                                <span className="text-[10px] text-zinc-400 font-bold">
+                                  {isDietExpanded ? "접기" : "전체 메뉴 펼치기"}
+                                </span>
+                                {isDietExpanded ? (
+                                  <Icons.ChevronDown className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                  <Icons.ChevronRight className="w-4 h-4 text-emerald-400" />
+                                )}
                               </div>
                             </div>
+
+                            {/* 1. 기본 상태: 컴팩트 가로 3열 뷰 */}
+                            {!isDietExpanded ? (
+                              <div className="grid grid-cols-3 gap-3 animate-fadeIn">
+                                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                  <p className="text-[10px] text-zinc-500 font-bold">아침 식사</p>
+                                  <p className="text-xs text-emerald-400 font-extrabold mt-1.5 truncate" title={diagnosis.diet.breakfast}>{diagnosis.diet.breakfast}</p>
+                                </div>
+                                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                  <p className="text-[10px] text-zinc-500 font-bold">점심 식사</p>
+                                  <p className="text-xs text-emerald-400 font-extrabold mt-1.5 truncate" title={diagnosis.diet.lunch}>{diagnosis.diet.lunch}</p>
+                                </div>
+                                <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-800 text-center">
+                                  <p className="text-[10px] text-zinc-500 font-bold">저녁 식사</p>
+                                  <p className="text-xs text-emerald-400 font-extrabold mt-1.5 truncate" title={diagnosis.diet.dinner}>{diagnosis.diet.dinner}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              /* 2. 클릭 시 상태: 하단으로 세부 텍스트 아코디언 확장 정렬 뷰 */
+                              <div className="space-y-3 pt-1 border-t border-zinc-800/80 animate-slideUp">
+                                <div className="bg-zinc-900/85 rounded-xl p-3.5 border border-zinc-800/85">
+                                  <div className="flex items-center space-x-1.5 mb-1.5">
+                                    <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded font-black">아침</span>
+                                    <span className="text-[9px] text-zinc-500 font-semibold">복합 탄수화물 활성화</span>
+                                  </div>
+                                  <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{diagnosis.diet.breakfast}</p>
+                                </div>
+
+                                <div className="bg-zinc-900/85 rounded-xl p-3.5 border border-zinc-800/85">
+                                  <div className="flex items-center space-x-1.5 mb-1.5">
+                                    <span className="text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded font-black">점심</span>
+                                    <span className="text-[9px] text-zinc-500 font-semibold">단백질 중심 동화 에너지</span>
+                                  </div>
+                                  <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{diagnosis.diet.lunch}</p>
+                                </div>
+
+                                <div className="bg-zinc-900/85 rounded-xl p-3.5 border border-zinc-800/85">
+                                  <div className="flex items-center space-x-1.5 mb-1.5">
+                                    <span className="text-[10px] bg-violet-500/10 text-violet-400 px-1.5 py-0.5 rounded font-black">저녁</span>
+                                    <span className="text-[9px] text-zinc-500 font-semibold">근회복 및 저지방 단식 전 영양</span>
+                                  </div>
+                                  <p className="text-xs text-zinc-200 leading-relaxed font-semibold">{diagnosis.diet.dinner}</p>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           <div className="bg-zinc-800/50 rounded-2xl p-5 border border-zinc-800 space-y-4">
@@ -589,7 +655,7 @@
                   )}
 
                   {activeTab === 'diet' && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 animate-fadeIn">
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-emerald-400 tracking-wider uppercase">Advanced Meal Logger</span>
                         <h2 className="text-2xl font-black text-white">식단 다이어리 & 칼로리</h2>
@@ -705,7 +771,7 @@
                   )}
 
                   {activeTab === 'workout' && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 animate-fadeIn">
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-violet-400 tracking-wider uppercase">Dynamic Workout Prescribe</span>
                         <h2 className="text-2xl font-black text-white">맞춤 운동 처방 & 가이드</h2>
@@ -763,7 +829,7 @@
                   )}
 
                   {activeTab === 'sleep' && (
-                    <div className="space-y-6">
+                    <div className="space-y-6 animate-fadeIn">
                       <div className="space-y-1">
                         <span className="text-xs font-bold text-sky-400 tracking-wider uppercase">Circadian Sleep Analytics</span>
                         <h2 className="text-2xl font-black text-white">지능형 생체 수면 관리</h2>
@@ -789,7 +855,7 @@
                       </div>
 
                       {sleepReport && (
-                        <div className="bg-zinc-800/40 border border-zinc-800 rounded-2xl p-5 space-y-4">
+                        <div className="bg-zinc-800/40 border border-zinc-800 rounded-2xl p-5 space-y-4 animate-fadeIn">
                           <div className="flex items-center space-x-2">
                             <span className="text-lg">🌙</span>
                             <h3 className="text-xs font-black text-white uppercase tracking-wider">나의 생체 수면 처방서</h3>
